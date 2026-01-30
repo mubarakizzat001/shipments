@@ -1,21 +1,14 @@
-
+### shipment management api
 from typing import Any
 
 from fastapi import FastAPI, HTTPException, status
 from scalar_fastapi import get_scalar_api_reference
 from .schemas import read_shipment,create_shipment,update_shipment
-
-
+from .database import shipments,save_shipments
+### create fastapi app
 app = FastAPI()
 
-### Shipments datastore as dict
-shipments = {
-    12701: {"weight": 0.6, "content": "rubber ducks", "status": "placed"},
-    12702: {"weight": 2.3, "content": "magic wands", "status": "shipped"},
-    12703: {"weight": 1.1, "content": "unicorn horns", "status": "delivered"},
-    12704: {"weight": 3.5, "content": "dragon eggs", "status": "in transit"},
-    12705: {"weight": 0.9, "content": "wizard hats", "status": "returned"},
-}
+
 ### read shipment by id 
 @app.get("/shipments/{shipment_id}",response_model=read_shipment)
 def get_shipment(shipment_id: int) -> dict[str, Any]:
@@ -25,12 +18,17 @@ def get_shipment(shipment_id: int) -> dict[str, Any]:
 
 
 ### create new shipment     
-@app.post("/shipments",response_model=create_shipment)
+@app.post("/shipments", response_model=dict)
 def create_shipment(shipment:create_shipment) -> dict[str, Any]:
     if shipment.weight > 15:
         raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail="Shipment too heavy")
-    new_id = max(shipments.keys()) + 1
-    shipments[new_id] = shipment.model_dump()
+    new_id = (max(shipments.keys()) if shipments else 0) + 1
+    shipments[new_id] = {
+        "id": new_id,
+        **shipment.model_dump(),
+        "status": "placed"
+        }
+    save_shipments()
     return {"id": new_id}
 
 
@@ -40,7 +38,8 @@ def create_shipment(shipment:create_shipment) -> dict[str, Any]:
 def update_shipment(id: int, shipment: update_shipment) -> dict[str, Any]:
     if id not in shipments:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="not found")
-    shipments[id].update(shipment)
+    shipments[id].update(shipment.model_dump(exclude_unset=True))
+    save_shipments()
     return shipments[id]
 
 ### delete shipment by id
@@ -49,6 +48,7 @@ def delete_shipment(id: int) -> dict[str, Any]:
     if id not in shipments:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
     shipments.pop(id)
+    save_shipments()
     return {"message": f"shipment {id} deleted"}
 
 

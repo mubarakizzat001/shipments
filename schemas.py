@@ -20,7 +20,7 @@ class baseShipment(BaseModel):
         max_length=50,
         description="content of the shipment and must be between 5 and 50 characters"
     )
-    destination: int
+    destination: int | None = None
 
 
 class read_shipment(baseShipment):

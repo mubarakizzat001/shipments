@@ -24,8 +24,8 @@ A FastAPI-based REST API for managing shipments with validation using Pydantic m
 ### 1. Clone the repository
 
 ```bash
-git clone <your-repo-url>
-cd ml_fastapi
+git clone https://github.com/mubarakizzat001/shipments.git
+cd shipment-fastapi
 ```
 
 ### 2. Create virtual environment
@@ -204,6 +204,8 @@ curl -X DELETE "http://127.0.0.1:8000/shipments?id=12701"
 ```
 ml_fastapi/
 ├── main.py           # FastAPI application and endpoints
+├── database.py       # Database connection and helper functions
+├── shipments.json    # JSON data store
 ├── schemas.py        # Pydantic models and validation
 ├── requirements.txt  # Project dependencies
 ├── __init__.py      # Package initialization
