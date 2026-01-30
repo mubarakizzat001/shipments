@@ -2,6 +2,7 @@ from typing import Any
 
 from fastapi import FastAPI, HTTPException, status
 from scalar_fastapi import get_scalar_api_reference
+from schemas import Shipment, ShipmentStatus
 
 
 app = FastAPI()
@@ -16,33 +17,33 @@ shipments = {
 }
 ### read shipment by id 
 @app.get("/shipments/{shipment_id}")
-def get_shipment(shipment_id:int)->dict[str,Any]:
+def get_shipment(shipment_id: int) -> dict[str, Any]:
     if shipment_id not in shipments:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
     return shipments[shipment_id]
-### create new shipment
+### create new shipment     
 @app.post("/shipments")
-def create_shipment(shipment:dict[str,Any])->dict[str,Any]:
-    if shipment["weight"] > 25:
-        raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE,detail="Shipment too heavy")
-    new_id = max(shipments.keys())+1
-    shipments[new_id] = shipment
-    return {"id":new_id}
+def create_shipment(shipment: Shipment) -> dict[str, Any]:
+    if shipment.weight > 15:
+        raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail="Shipment too heavy")
+    new_id = max(shipments.keys()) + 1
+    shipments[new_id] = shipment.model_dump()
+    return {"id": new_id}
 ### update shipment by id
 @app.patch("/shipments")
-def update_shipment(id:int,shipment:dict[str,Any])->dict[str,Any]:
+def update_shipment(id: int, shipment: dict[str, Any]) -> dict[str, Any]:
     if id not in shipments:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="not found")
     shipments[id].update(shipment)
     return shipments[id]
 
 ### delete shipment by id
 @app.delete("/shipments")
-def delete_shipment(id:int)->dict[str,Any]:
+def delete_shipment(id: int) -> dict[str, Any]:
     if id not in shipments:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
     shipments.pop(id)
-    return {"message":f"shipment {id} deleted"}
+    return {"message": f"shipment {id} deleted"}
 ### scalar endpoint
 @app.get("/scalar")
 def scalar_endpoint():
