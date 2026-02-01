@@ -2,3 +2,4 @@ fastapi[all]
 uvicorn
 pydantic
 scalar-fastapi
+sqlmodel
