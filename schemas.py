@@ -6,7 +6,7 @@ from datetime import datetime
 
 
 
-class baseShipment(BaseModel):
+class BaseShipment(BaseModel):
     weight: float = Field(
         le=15,
         description="weight of the shipment in kg and must be less than 15kg"
@@ -19,13 +19,15 @@ class baseShipment(BaseModel):
     destination: str | None = None
 
 
-class read_shipment(baseShipment):
-    status:ShipmentStatus
-    estimated_delivery:datetime|None=Field(default=None,description="estimated delivery date")
+class ReadShipment(BaseShipment):
+    status: ShipmentStatus
+    estimated_delivery: datetime | None = Field(default=None, description="estimated delivery date")
 
-class create_shipment(baseShipment):
+
+class CreateShipment(BaseShipment):
     pass
 
-class update_shipment(BaseModel):
-    estimated_delivery:datetime|None=Field(default=None,description="estimated delivery date")
-    status:ShipmentStatus|None=Field(default=None,description="status of the shipment")    
+
+class UpdateShipment(BaseModel):
+    estimated_delivery: datetime | None = Field(default=None, description="estimated delivery date")
+    status: ShipmentStatus | None = Field(default=None, description="status of the shipment")

@@ -12,8 +12,8 @@ engine=create_engine(
 )
 
 
-from .models import shipment
-def ceate_db_table():
+from .models import Shipment
+def create_db_table():
     SQLModel.metadata.create_all(engine)
 
 def get_session():
@@ -21,4 +21,4 @@ def get_session():
         yield session
 
 
-sessionDep= Annotated[Session,Depends(get_session())]
+sessionDep= Annotated[Session,Depends(get_session)]
