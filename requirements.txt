@@ -5,3 +5,5 @@ scalar-fastapi
 sqlmodel
 pydantic-settings
 asyncpg
+passlib[bcrypt]
+
