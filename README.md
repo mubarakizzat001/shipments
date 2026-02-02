@@ -1,22 +1,24 @@
 # 📦 Shipment Management API
 
-A FastAPI-based REST API for managing shipments using SQLModel for database interactions and Pydantic for data validation.
+A modern, modular FastAPI-based REST API for managing shipments using SQLModel for database interactions, async PostgreSQL for persistence, and Pydantic for data validation.
 
 ## 🚀 Features
 
-- ✅ CRUD operations for shipments
-- ✅ Database persistence with SQLite and SQLModel
-- ✅ Data validation with Pydantic
-- ✅ Interactive API documentation (Swagger & Scalar)
-- ✅ Type hints and response models
-- ✅ Status tracking for shipments
-- ✅ Weight and content validation
+- ✅ **Modular Architecture**: Clean separation of concerns (API, Services, Database).
+- ✅ **Async Operations**: Fully asynchronous database interactions using `SQLAlchemy` and `asyncpg`.
+- ✅ **Database Persistence**: Robust persistence with PostgreSQL and SQLModel.
+- ✅ **Interactive Documentation**: Beautiful API reference with Scalar and standard Swagger UI.
+- ✅ **Environment-based Config**: Flexible configuration using `pydantic-settings`.
+- ✅ **Data Validation**: Strict type-safe data handling with Pydantic.
+- ✅ **Shipment Tracking**: Comprehensive CRUD for shipments with status and delivery estimation.
 
 ## 📋 Requirements
 
-- Python 3.8+
+- Python 3.9+
 - FastAPI
 - SQLModel
+- PostgreSQL (with `asyncpg`)
+- Pydantic Settings
 - Scalar FastAPI
 
 ## 🛠️ Installation
@@ -42,7 +44,24 @@ source venv/bin/activate  # Linux/Mac
 pip install -r requirements.txt
 ```
 
-## 🏃 Running the Application
+### 4. Configuration
+
+Copy the example environment file and update it with your PostgreSQL credentials:
+
+```bash
+cp .env.example .env
+```
+
+Edit `.env`:
+```ini
+POSTGRES_SERVER=localhost
+POSTGRES_PORT=5432
+POSTGRES_USER=your_user
+POSTGRES_PASSWORD=your_password
+POSTGRES_DB=shipment_db
+```
+
+## 跑步 Running the Application
 
 ### Development Mode
 
@@ -79,116 +98,59 @@ Once the server is running, access the documentation at:
 
 ### ShipmentStatus (Enum)
 
-```python
-- placed
-- shipped
-- in_transit
-- delivered
-- returned
-```
+- `placed`: Shipment order received.
+- `shipped`: Shipment has left the origin.
+- `in_transit`: Shipment is on its way.
+- `delivered`: Shipment has arrived.
+- `returned`: Shipment was returned to sender.
 
 ### CreateShipment
-
-```json
-{
-  "weight": 2.5,
-  "content": "books",
-  "destination": "Cairo, Egypt"
-}
-```
-
-**Validation Rules:**
-- `weight`: Must be ≤ 15 kg
-- `content`: 5-50 characters
+Required fields inherited from `BaseShipment`:
+- `weight`: float (max 15 kg)
+- `content`: string (5-50 chars)
+- `destination`: string (optional)
 
 ### UpdateShipment
-
 All fields are optional:
-
-```json
-{
-  "status": "shipped",
-  "estimated_delivery": "2026-02-10T12:00:00"
-}
-```
-
-### ReadShipment
-
-Response model includes all fields plus status and estimated delivery:
-
-```json
-{
-  "id": 1,
-  "weight": 2.5,
-  "content": "books",
-  "destination": "Cairo, Egypt",
-  "status": "placed",
-  "estimated_delivery": "2026-02-06T20:22:34"
-}
-```
-
-## 💡 Usage Examples
-
-### Create a Shipment
-
-```bash
-curl -X POST "http://127.0.0.1:8000/shipments" \
-     -H "Content-Type: application/json" \
-     -d '{
-       "weight": 2.5,
-       "content": "magic books",
-       "destination": "Alexandria"
-     }'
-```
-
-### Get a Shipment
-
-```bash
-curl "http://127.0.0.1:8000/shipments/1"
-```
-
-### Update a Shipment
-
-```bash
-curl -X PATCH "http://127.0.0.1:8000/shipments/1" \
-     -H "Content-Type: application/json" \
-     -d '{
-       "status": "shipped"
-     }'
-```
-
-### Delete a Shipment
-
-```bash
-curl -X DELETE "http://127.0.0.1:8000/shipments/1"
-```
+- `weight`: New weight
+- `content`: New description
+- `destination`: New destination
+- `status`: New `ShipmentStatus`
+- `estimated_delivery`: New datetime
 
 ## 📁 Project Structure
 
 ```
 ml_fastapi/
-├── main.py           # FastAPI application and endpoints
-├── schemas.py        # Pydantic models for request/response
+├── api/
+│   ├── dependencies.py    # Service and Session dependencies
+│   ├── router.py          # API route definitions
+│   └── schemas/           # Pydantic/SQLModel schemas
+│       └── shipment.py    # Shipment models
 ├── database/
-│   ├── models.py     # SQLModel database tables
-│   └── session.py    # Database engine and session configuration
-├── requirements.txt  # Project dependencies
-├── sqlite.db         # SQLite database file
-└── README.md         # This file
+│   ├── models.py          # Enums and base models
+│   └── session.py         # Async engine and session setup
+├── services/
+│   └── shipment.py        # Business logic and DB operations
+├── config.py              # Environment and app configuration
+├── main.py                # Application entry point & lifespan
+├── requirements.txt       # Python dependencies
+└── .env                   # Configuration variables
 ```
 
 ## ⚙️ Configuration
 
-The application uses **SQLModel** with **SQLite** for data persistence. The database is stored locally in `sqlite.db`.
+The application uses **SQLModel** with **Async PostgreSQL**. Database tables are automatically created on startup via the `lifespan` handler in `main.py`.
 
 ## 🐛 Error Handling
 
 The API returns appropriate HTTP status codes:
 
-- `200 OK`: Successful request
-- `404 Not Found`: Shipment not found
-- `400 Bad Request`: Missing update data
-- `422 Unprocessable Entity`: Validation error
+- `200 OK`: Successful request.
+- `201 Created`: Successfully created a resource.
+- `400 Bad Request`: Validation error or missing data.
+- `404 Not Found`: Shipment not found.
+- `422 Unprocessable Entity`: Invalid request parameters.
 
 ## 🤝 Contributing
 
@@ -208,6 +170,6 @@ Mubarak Izzat
 
 ## 🙏 Acknowledgments
 
-- FastAPI framework
-- SQLModel for easy ORM
-- Scalar for beautiful API documentation
+- [FastAPI](https://fastapi.tiangolo.com/)
+- [SQLModel](https://sqlmodel.tiangolo.com/)
+- [Scalar](https://scalar.com/) for beautiful API documentation.
