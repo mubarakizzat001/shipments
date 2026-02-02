@@ -21,7 +21,7 @@ app = FastAPI(lifespan=lifespan_handler)
 app.include_router(router)
 
 ### scalar endpoint
-@app.get("/scalar")
+@app.get("/scalar",include_in_schema=False)
 def scalar_endpoint():
     return get_scalar_api_reference(
         openapi_url=app.openapi_url,

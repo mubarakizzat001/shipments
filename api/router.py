@@ -6,11 +6,11 @@ from fastapi import HTTPException, status
 
 
 
-router=APIRouter()
+router=APIRouter(prefix="/api",tags=["shipments"])
 
 
 ### read shipment by id 
-@router.get("/shipments/{shipment_id}", response_model=Shipment)
+@router.get("/", response_model=Shipment)
 async def get_shipment(shipment_id: int, service: serviceDep) -> Any:
     shipment_obj = await service.get_shipment(shipment_id)
     if shipment_obj is None:
@@ -20,13 +20,13 @@ async def get_shipment(shipment_id: int, service: serviceDep) -> Any:
 
 
 ### create new shipment     
-@router.post("/shipments")
+@router.post("/")
 async def create(shipment_data: CreateShipment, service: serviceDep) -> Shipment:
     return await service.post_shipment(shipment_data)
    
 
 ### update shipment by id
-@router.patch("/shipments/{shipment_id}", response_model=UpdateShipment)
+@router.patch("/", response_model=UpdateShipment)
 async def update(shipment_id: int, shipment_update: UpdateShipment, service: serviceDep) -> Any:
     updated_data = shipment_update.model_dump(exclude_none=True)
     if not updated_data:
@@ -36,7 +36,7 @@ async def update(shipment_id: int, shipment_update: UpdateShipment, service: ser
 
 
 ### delete shipment by id
-@router.delete("/shipments/{shipment_id}")
+@router.delete("/")
 async def delete(shipment_id: int, service: serviceDep) -> dict[str, Any]:
     ### remove shipment from dataset
     await service.delete_shipment(shipment_id)

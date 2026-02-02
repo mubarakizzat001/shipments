@@ -4,7 +4,7 @@
 from datetime import datetime,timedelta
 from ml_fastapi.database.models import ShipmentStatus
 from sqlalchemy.ext.asyncio import AsyncSession
-from ml_fastapi.api.schemas.shipment import CreateShipment,UpdateShipment,Shipment
+from ml_fastapi.api.schemas.shipment import CreateShipment,Shipment
 
 class shipment_service:
     def __init__(self,session:AsyncSession):
@@ -29,9 +29,9 @@ class shipment_service:
         return new_shipment
 
 
-    async def patch_shipment(self,shipment_id:int,shipment_update:UpdateShipment)->Shipment:
+    async def patch_shipment(self,shipment_id:int,shipment_update:dict)->Shipment:
         shipment_obj =await self.get_shipment(shipment_id)
-        shipment_obj.sqlmodel_update(shipment_update.model_dump(exclude_none=True))
+        shipment_obj.sqlmodel_update(shipment_update)
         self.session.add(shipment_obj)
         await self.session.commit()
         await self.session.refresh(shipment_obj)
