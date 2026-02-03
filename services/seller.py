@@ -1,13 +1,11 @@
 
-from ml_fastapi.config import secret_settings
-from datetime import datetime,timedelta
 from fastapi import HTTPException,status
 from sqlalchemy import select
 import bcrypt
 from ml_fastapi.api.schemas.seller import seller_create
 from sqlalchemy.ext.asyncio import AsyncSession
 from ml_fastapi.database.models import Seller
-import jwt
+from ml_fastapi.utils import generate_access_token
 
 
 
@@ -19,7 +17,7 @@ class SellerService:
     async def register_seller(self, seller_data: seller_create) -> Seller:
         hashed_password = bcrypt.hashpw(seller_data.password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
         seller = Seller(
-            **seller_data.model_dump(exclude=["password"]),
+            **seller_data.model_dump(exclude={"password"}),
             password=hashed_password
         )
         self.session.add(seller)
@@ -41,17 +39,11 @@ class SellerService:
                 detail="email or password is not correct",
 
             )
-        token=jwt.encode(
-            payload={
-                "user" : {
-                    "name":seller.name,
-                    "email":seller.email,
-
-                },
-                "exp":datetime.now()+timedelta(hours=3)
+        token= generate_access_token(
+            data={
+                "name":seller.name,
+                "email":seller.email
             },
-            algorithm=secret_settings.JWT_algorithm,
-            key=secret_settings.JWT_secret
         )
 
         return token

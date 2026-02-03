@@ -23,3 +23,4 @@ TestResults.xml
 #env variables
 .env
 .venv
+__pycache__
