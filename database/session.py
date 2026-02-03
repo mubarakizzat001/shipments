@@ -15,6 +15,7 @@ engine=create_async_engine(
 async def create_db_table():
     async with engine.begin() as conn:
         from ml_fastapi.api.schemas.shipment import Shipment
+        from ml_fastapi.database.models import Seller
         await conn.run_sync(SQLModel.metadata.create_all)
 
 async def get_session():

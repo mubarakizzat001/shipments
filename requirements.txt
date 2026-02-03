@@ -6,4 +6,5 @@ sqlmodel
 pydantic-settings
 asyncpg
 passlib[bcrypt]
+pyjwt
 
