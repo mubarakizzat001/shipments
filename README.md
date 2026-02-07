@@ -1,175 +1,146 @@
 # 📦 Shipment Management API
 
-A modern, modular FastAPI-based REST API for managing shipments using SQLModel for database interactions, async PostgreSQL for persistence, and Pydantic for data validation.
+A modern, modular FastAPI REST API for creating and tracking shipments. This project features a clean architecture, asynchronous database operations, and secure authentication.
 
-## 🚀 Features
+---
 
-- ✅ **Modular Architecture**: Clean separation of concerns (API, Services, Database).
-- ✅ **Async Operations**: Fully asynchronous database interactions using `SQLAlchemy` and `asyncpg`.
-- ✅ **Database Persistence**: Robust persistence with PostgreSQL and SQLModel.
-- ✅ **Interactive Documentation**: Beautiful API reference with Scalar and standard Swagger UI.
-- ✅ **Environment-based Config**: Flexible configuration using `pydantic-settings`.
-- ✅ **Data Validation**: Strict type-safe data handling with Pydantic.
-- ✅ **Shipment Tracking**: Comprehensive CRUD for shipments with status and delivery estimation.
+## 🚀 Key Features
+
+- **Modular architecture**: Organized into API (routers, schemas), Services, and Database layers.
+- **Async DB operations**: Utilizes SQLModel with `asyncpg` for efficient PostgreSQL interactions.
+- **JWT-based Authentication**: Secure seller account management with token-based access control.
+- **Auto Table Creation**: Automatically sets up database tables on startup.
+- **Interactive Documentation**: Swagger UI and **Scalar** API reference for better developer experience.
+
+---
 
 ## 📋 Requirements
 
 - Python 3.9+
-- FastAPI
-- SQLModel
-- PostgreSQL (with `asyncpg`)
-- Pydantic Settings
-- Scalar FastAPI
+- See `requirements.txt` for dependencies:
+  - `fastapi`, `uvicorn`, `sqlmodel`, `asyncpg`
+  - `passlib[bcrypt]`, `pyjwt`
+  - `scalar-fastapi`, `pydantic-settings`
 
-## 🛠️ Installation
+---
 
-### 1. Clone the repository
+## ⚙️ Environment variables (.env)
 
-```bash
-git clone https://github.com/mubarakizzat001/shipments.git
-cd ml_fastapi
-```
+Create a `.env` file at the project root based on `.env.example`:
 
-### 2. Create virtual environment
-
-```bash
-python3 -m venv venv
-source venv/bin/activate  # Linux/Mac
-# venv\Scripts\activate   # Windows
-```
-
-### 3. Install dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
-### 4. Configuration
-
-Copy the example environment file and update it with your PostgreSQL credentials:
-
-```bash
-cp .env.example .env
-```
-
-Edit `.env`:
 ```ini
 POSTGRES_SERVER=localhost
 POSTGRES_PORT=5432
 POSTGRES_USER=your_user
 POSTGRES_PASSWORD=your_password
 POSTGRES_DB=shipment_db
+JWT_SECRET=your_jwt_secret
+JWT_ALGORITHM=HS256
 ```
 
-## 跑步 Running the Application
+---
 
-### Development Mode
+## 🛠 Installation
+
+1. Clone and enter project directory:
+   ```bash
+   git clone <repo-url>
+   cd ml_fastapi
+   ```
+
+2. Create and activate a virtual environment:
+   ```bash
+   python3 -m venv venv
+   source venv/bin/activate
+   ```
+
+3. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+---
+
+## ▶️ Running the API
+
+Start the server from the project root:
 
 ```bash
-fastapi dev
+uvicorn ml_fastapi.main:app --reload
 ```
-
-The server will start at `http://127.0.0.1:8000`
-
-### Production Mode
-
-```bash
-fastapi run
-```
-
-## 📚 API Documentation
-
-Once the server is running, access the documentation at:
 
 - **Swagger UI**: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
-- **Scalar UI**: [http://127.0.0.1:8000/scalar](http://127.0.0.1:8000/scalar)
+- **Scalar Docs**: [http://127.0.0.1:8000/scalar](http://127.0.0.1:8000/scalar)
+
+---
 
 ## 🔌 API Endpoints
 
-| Method | Endpoint | Description | Request Body |
-|--------|----------|-------------|--------------|
-| `GET` | `/shipments/{shipment_id}` | Get shipment by ID | - |
-| `POST` | `/shipments` | Create new shipment | `CreateShipment` |
-| `PATCH` | `/shipments/{shipment_id}` | Update shipment | `UpdateShipment` |
-| `DELETE` | `/shipments/{shipment_id}` | Delete shipment | - |
-| `GET` | `/scalar` | Scalar API reference | - |
+### Seller (Authentication)
+| Method | Endpoint | Description | Auth |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/seller/signup` | Register a new seller | No |
+| `POST` | `/seller/login` | Login (OAuth2 Password Grant) | No |
+| `GET` | `/seller/dashboard` | Access protected seller dashboard | Bearer Token |
 
-## 📦 Data Models
+### Shipments
+| Method | Endpoint | Description | Auth |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/api/` | Create a new shipment | No |
+| `GET` | `/api/` | Get shipment by ID (requires `shipment_id` query param) | No |
+| `PATCH` | `/api/` | Update shipment (partial, requires `shipment_id`) | No |
+| `DELETE` | `/api/` | Delete shipment (requires `shipment_id`) | No |
 
-### ShipmentStatus (Enum)
+---
 
-- `placed`: Shipment order received.
-- `shipped`: Shipment has left the origin.
-- `in_transit`: Shipment is on its way.
-- `delivered`: Shipment has arrived.
-- `returned`: Shipment was returned to sender.
+## 🔐 Authentication Example (curl)
 
-### CreateShipment
-Required fields inherited from `BaseShipment`:
-- `weight`: float (max 15 kg)
-- `content`: string (5-50 chars)
-- `destination`: string (optional)
+1. **Signup**:
+   ```bash
+   curl -X POST "http://127.0.0.1:8000/seller/signup" -H "Content-Type: application/json" -d '{"name": "Alice", "email": "a@example.com", "password": "secret"}'
+   ```
 
-### UpdateShipment
-All fields are optional:
-- `weight`: New weight
-- `content`: New description
-- `destination`: New destination
-- `status`: New `ShipmentStatus`
-- `estimated_delivery`: New datetime
+2. **Login**:
+   ```bash
+   curl -X POST "http://127.0.0.1:8000/seller/login" -H "Content-Type: application/x-www-form-urlencoded" -d "username=a@example.com&password=secret"
+   ```
 
-## 📁 Project Structure
+3. **Dashboard Access**:
+   ```bash
+   curl -H "Authorization: Bearer <your_jwt_token>" http://127.0.0.1:8000/seller/dashboard
+   ```
 
-```
+---
+
+## 🗂 Project Structure
+
+```text
 ml_fastapi/
-├── api/
-│   ├── dependencies.py    # Service and Session dependencies
-│   ├── router.py          # API route definitions
-│   └── schemas/           # Pydantic/SQLModel schemas
-│       └── shipment.py    # Shipment models
-├── database/
-│   ├── models.py          # Enums and base models
-│   └── session.py         # Async engine and session setup
-├── services/
-│   └── shipment.py        # Business logic and DB operations
-├── config.py              # Environment and app configuration
-├── main.py                # Application entry point & lifespan
-├── requirements.txt       # Python dependencies
-└── .env                   # Configuration variables
+├── api/             # API Layer (routers, schemas)
+├── core/            # Core settings and security
+├── database/        # DB session and SQLModel models
+├── services/        # Business logic (Seller, Shipment)
+├── main.py          # FastAPI application entry point
+└── utils.py         # Helper functions (JWT, security)
 ```
 
-## ⚙️ Configuration
+---
 
-The application uses **SQLModel** with **Async PostgreSQL**. Database tables are automatically created on startup via the `lifespan` handler in `main.py`.
+## 🧪 Testing
 
-## 🐛 Error Handling
+Run tests using:
+```bash
+pytest
+```
 
-The API returns appropriate HTTP status codes:
-
-- `200 OK`: Successful request.
-- `201 Created`: Successfully created a resource.
-- `400 Bad Request`: Validation error or missing data.
-- `404 Not Found`: Shipment not found.
-- `422 Unprocessable Entity`: Invalid request parameters.
+---
 
 ## 🤝 Contributing
 
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Open a Pull Request
+Contributions are welcome! Please fork the repository and submit a pull request.
 
-## 📝 License
+---
 
-This project is licensed under the MIT License.
+## 📄 License
 
-## 👨‍💻 Author
-
-Mubarak Izzat
-
-## 🙏 Acknowledgments
-
-- [FastAPI](https://fastapi.tiangolo.com/)
-- [SQLModel](https://sqlmodel.tiangolo.com/)
-- [Scalar](https://scalar.com/) for beautiful API documentation.
+MIT
