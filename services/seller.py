@@ -30,6 +30,7 @@ class SellerService:
         ### vaildate email
         result=await self.session.execute(select(Seller).where(Seller.email==email))
         seller=result.scalar()
+    
         if seller is None or not bcrypt.checkpw(
             password.encode('utf-8'),
             seller.password.encode('utf-8')
@@ -42,7 +43,7 @@ class SellerService:
         token= generate_access_token(
             data={
                 "name":seller.name,
-                "email":seller.email
+                "id":seller.id
             },
         )
 

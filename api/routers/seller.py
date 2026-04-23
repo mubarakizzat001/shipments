@@ -1,8 +1,9 @@
 from typing import Annotated
 from fastapi import Depends, HTTPException, status
 from fastapi.security.oauth2 import OAuth2PasswordRequestForm
+from ...database.models import Seller
 from ml_fastapi.api.schemas.seller import seller_read   
-from ml_fastapi.api.dependencies import sellerDep
+from ml_fastapi.api.dependencies import sellerDep,sessionDep
 from ml_fastapi.api.schemas.seller import seller_create
 from fastapi import APIRouter
 
@@ -38,16 +39,4 @@ async def login_seller(
 
 
 
-@router.get("/dashboard")
-def dashboard(token: Annotated[str,Depends(OAuth_schemas)]):
-    data = decode_access_token(token)  # noqa: F841
-    if data is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="invalid login credentials",
-        )
-    
-    return {
-        "message":"successful login"
-    }
 
