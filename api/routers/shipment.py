@@ -4,6 +4,8 @@ from fastapi import APIRouter
 from ml_fastapi.api.schemas import CreateShipment, UpdateShipment,Shipment
 from typing import Any
 from fastapi import HTTPException, status
+from ml_fastapi.database.models import Seller
+from uuid import UUID
 
 
 
@@ -12,7 +14,7 @@ router=APIRouter(prefix="/api",tags=["shipments"])
 
 ### read shipment by id 
 @router.get("/", response_model=Shipment)
-async def get_shipment(seller:activesellerDep,shipment_id: int, service: serviceDep) -> Any:
+async def get_shipment(seller:activesellerDep,shipment_id: UUID, service: serviceDep) -> Any:
     shipment_obj = await service.get_shipment(shipment_id)
     if shipment_obj is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
@@ -22,15 +24,15 @@ async def get_shipment(seller:activesellerDep,shipment_id: int, service: service
 
 ### create new shipment     
 @router.post("/")
-async def create(seller:activesellerDep,
-shipment_data: CreateShipment,
- service: serviceDep) -> Shipment:
-    return await service.post_shipment(shipment_data)
+async def create(   shipment_data: CreateShipment,
+    seller: activesellerDep,
+    service: serviceDep) -> Shipment:
+    return await service.post_shipment(shipment_data,seller)
    
 
 ### update shipment by id
 @router.patch("/", response_model=UpdateShipment)
-async def update(seller:activesellerDep,shipment_id: int, shipment_update: UpdateShipment, service: serviceDep) -> Any:
+async def update(seller:activesellerDep,shipment_id: UUID, shipment_update: UpdateShipment, service: serviceDep) -> Any:
     updated_data = shipment_update.model_dump(exclude_none=True)
     if not updated_data:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="no update data provided")
@@ -40,7 +42,7 @@ async def update(seller:activesellerDep,shipment_id: int, shipment_update: Updat
 
 ### delete shipment by id
 @router.delete("/")
-async def delete(seller:activesellerDep,shipment_id: int, service: serviceDep) -> dict[str, Any]:
+async def delete(seller:activesellerDep,shipment_id: UUID, service: serviceDep) -> dict[str, Any]:
     ### remove shipment from dataset
     await service.delete_shipment(shipment_id)
 

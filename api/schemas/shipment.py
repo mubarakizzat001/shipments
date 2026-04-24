@@ -1,13 +1,12 @@
 
 from ml_fastapi.database.models import ShipmentStatus
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from datetime import datetime
-from sqlmodel import SQLModel, Field
+from uuid import UUID, uuid4
 
 
 
-
-class BaseShipment(SQLModel):
+class BaseShipment(BaseModel):
     weight: float = Field(
         le=15,
         description="weight of the shipment in kg and must be less than 15kg"
@@ -17,12 +16,11 @@ class BaseShipment(SQLModel):
         max_length=50,
         description="content of the shipment and must be between 5 and 50 characters"
     )
-    destination: str | None = None
+    destination: int | None = None
 
 
-class Shipment(BaseShipment, table=True):
-    __tablename__="shipment"
-    id: int = Field(primary_key=True)
+class Shipment(BaseShipment):
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
     status: ShipmentStatus
     estimated_delivery: datetime | None = Field(default=None, description="estimated delivery date")
 

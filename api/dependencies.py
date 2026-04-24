@@ -9,6 +9,7 @@ from ml_fastapi.database.session import get_session
 from typing import Annotated
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
+from uuid import UUID
 
 
 sessionDep= Annotated[AsyncSession,Depends(get_session)]
@@ -25,7 +26,7 @@ async def get_access_token(token:Annotated[str,Depends(OAuth_schemas)])->dict:
 async def get_current_seller(token_data :Annotated[dict,Depends(get_access_token)],
                           session:sessionDep,
 ):
-    return await session.get(Seller, token_data["user"]["id"])
+    return await session.get(Seller, UUID(token_data["user"]["id"]))
 
 
 def get_shipment_service(session:sessionDep):
