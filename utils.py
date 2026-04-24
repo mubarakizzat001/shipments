@@ -1,5 +1,6 @@
 
 
+from uuid import uuid4
 from fastapi import HTTPException,status
 from datetime import timezone
 from datetime import datetime, timedelta
@@ -18,7 +19,8 @@ def generate_access_token(
                 "user" : {
                     **data
                 },
-                "exp":datetime.now(timezone.utc)+expires_delta
+                "exp":datetime.now(timezone.utc)+expires_delta,
+                "jti":str(uuid4())
             },
             algorithm=secret_settings.JWT_algorithm,
             key=secret_settings.JWT_secret

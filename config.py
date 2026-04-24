@@ -17,6 +17,10 @@ class database_config(BaseSettings):
     postgres_password:str
     postgres_db:str
 
+    #redis config
+    redis_host:str
+    redis_port:int
+    
 
     model_config=_base_config
 

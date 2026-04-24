@@ -1,3 +1,4 @@
+from ml_fastapi.database.redis import is_token_blacklisted
 from ml_fastapi.database.models import Seller
 from fastapi import HTTPException,status
 from ml_fastapi.utils import decode_access_token
@@ -12,9 +13,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 sessionDep= Annotated[AsyncSession,Depends(get_session)]
 
-def get_access_token(token:Annotated[str,Depends(OAuth_schemas)])->dict:
+async def get_access_token(token:Annotated[str,Depends(OAuth_schemas)])->dict:
     data = decode_access_token(token)  
-    if data is None:
+    if data is None or await is_token_blacklisted(data["jti"]):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="invalid or expired login credentials",
