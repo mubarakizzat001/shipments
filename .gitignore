@@ -22,7 +22,8 @@ rad.json
 TestResults.xml
 #env variables
 .env
-.venv
 __pycache__
 .mypy_cache
 .pytest_cache
+__pycache__
+venv
