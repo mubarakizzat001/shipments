@@ -1,5 +1,5 @@
 from redis.asyncio import Redis
-from ml_fastapi.config import settings
+from app.config import settings
 
 
 _blacklisted_tokens = Redis(host=settings.redis_host,

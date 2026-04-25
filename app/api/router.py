@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from ml_fastapi.api.routers import seller,shipment
+from .routers import seller,shipment
 
 
 

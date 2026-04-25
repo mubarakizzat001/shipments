@@ -6,8 +6,8 @@ from datetime import timezone
 from datetime import datetime, timedelta
 import token
 import jwt
-from ml_fastapi.api.schemas import seller
-from ml_fastapi.config import secret_settings
+from app.api.schemas import seller
+from app.config import secret_settings
 
 def generate_access_token(
         data: dict,

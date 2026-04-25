@@ -1,10 +1,10 @@
-from ml_fastapi.api.dependencies import activesellerDep
-from ml_fastapi.api.dependencies import serviceDep
+from ..dependencies import activesellerDep
+from ..dependencies import serviceDep
 from fastapi import APIRouter
-from ml_fastapi.api.schemas import CreateShipment, UpdateShipment,Shipment
+from ..schemas import CreateShipment, UpdateShipment,Shipment
 from typing import Any
 from fastapi import HTTPException, status
-from ml_fastapi.database.models import Seller
+from ...database.models import Seller
 from uuid import UUID
 
 

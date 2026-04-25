@@ -1,7 +1,7 @@
 ### shipment management api
 
-from ml_fastapi.database.session import create_db_table
-from ml_fastapi.api.router import master_router
+from .database.session import create_db_table
+from .api.router import master_router
 from fastapi import FastAPI
 from scalar_fastapi import get_scalar_api_reference
 from contextlib import asynccontextmanager

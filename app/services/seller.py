@@ -2,10 +2,10 @@
 from fastapi import HTTPException,status
 from sqlalchemy import select
 import bcrypt
-from ml_fastapi.api.schemas.seller import seller_create
+from app.api.schemas.seller import seller_create
 from sqlalchemy.ext.asyncio import AsyncSession
-from ml_fastapi.database.models import Seller
-from ml_fastapi.utils import generate_access_token
+from app.database.models import Seller
+from app.utils import generate_access_token
 
 
 

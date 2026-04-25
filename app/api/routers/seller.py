@@ -1,16 +1,16 @@
 from ...database.redis import add_jti_to_blackist
-from ml_fastapi.api.dependencies import get_access_token
+from ...api.dependencies import get_access_token
 from typing import Annotated
 from fastapi import Depends, HTTPException, status
 from fastapi.security.oauth2 import OAuth2PasswordRequestForm
 from ...database.models import Seller
-from ml_fastapi.api.schemas.seller import seller_read   
-from ml_fastapi.api.dependencies import sellerDep,sessionDep
-from ml_fastapi.api.schemas.seller import seller_create
+from ...api.schemas.seller import seller_read   
+from ...api.dependencies import sellerDep,sessionDep
+from ...api.schemas.seller import seller_create
 from fastapi import APIRouter
 
-from ml_fastapi.core.security import OAuth_schemas
-from ml_fastapi.utils import decode_access_token
+from ...core.security import OAuth_schemas
+from ...utils import decode_access_token
 
 
 

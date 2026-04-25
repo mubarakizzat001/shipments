@@ -1,5 +1,5 @@
 
-from ml_fastapi.database.models import ShipmentStatus
+from ...database.models import ShipmentStatus
 from pydantic import BaseModel, Field
 from datetime import datetime
 from uuid import UUID, uuid4

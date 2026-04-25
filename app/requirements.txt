@@ -8,3 +8,4 @@ asyncpg
 passlib[bcrypt]
 pyjwt
 redis
+alembic

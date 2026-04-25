@@ -3,7 +3,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlmodel import SQLModel
 from typing import Annotated
 from fastapi import Depends
-from ml_fastapi.config import settings
+from app.config import settings
 
 
 engine=create_async_engine(
@@ -14,7 +14,7 @@ engine=create_async_engine(
 
 async def create_db_table():
     async with engine.begin() as conn:
-        from ml_fastapi.database.models import Seller,Shipment
+        from app.database.models import Seller,Shipment
         await conn.run_sync(SQLModel.metadata.create_all)
 
 async def get_session():
