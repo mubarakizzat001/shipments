@@ -28,6 +28,13 @@ class Shipment(SQLModel, table=True):
             default=datetime.now,
         )
     )
+    updated_at: datetime = Field(
+        sa_column=Column(
+            postgresql.TIMESTAMP,
+            default=datetime.now,
+            onupdate=datetime.now,
+        )
+    )
 
     content: str
     weight: float = Field(le=25)
