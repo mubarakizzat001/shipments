@@ -8,6 +8,7 @@ A modern, modular FastAPI REST API for creating and tracking shipments. This pro
 
 - **Modular architecture**: Organized into API (routers, schemas), Services, and Database layers.
 - **Async DB operations**: Utilizes SQLModel with `asyncpg` for efficient PostgreSQL interactions.
+- **Database Migrations**: Managed via **Alembic** for seamless schema evolution.
 - **JWT-based Authentication**: Secure seller account management with token-based access control.
 - **Token Blacklisting via Redis**: Logout invalidates JWT tokens instantly using a Redis-backed blacklist (JTI-based).
 - **Secure Logout**: `/seller/logout` endpoint blacklists the token's JTI, preventing reuse even before expiry.
@@ -21,7 +22,7 @@ A modern, modular FastAPI REST API for creating and tracking shipments. This pro
 - Python 3.9+
 - Redis server (for token blacklisting)
 - See `requirements.txt` for dependencies:
-  - `fastapi[all]`, `uvicorn`, `sqlmodel`, `asyncpg`
+  - `fastapi[all]`, `uvicorn`, `sqlmodel`, `asyncpg`, `alembic`
   - `passlib[bcrypt]`, `pyjwt`
   - `scalar-fastapi`, `pydantic-settings`
   - `redis` (async Redis client)
@@ -65,6 +66,11 @@ REDIS_PORT=6379
 3. Install dependencies:
    ```bash
    pip install -r requirements.txt
+   ```
+
+4. Run migrations:
+   ```bash
+   alembic upgrade head
    ```
 
 ---
@@ -130,21 +136,79 @@ uvicorn ml_fastapi.main:app --reload
 
 ```text
 ml_fastapi/
-├── api/
-│   ├── routers/         # Route handlers (seller, shipment)
-│   ├── schemas/         # Pydantic request/response schemas
-│   └── dependencies.py  # Shared FastAPI dependencies
-├── core/
-│   └── security.py      # OAuth2 scheme
-├── database/
-│   ├── models.py        # SQLModel ORM models
-│   ├── session.py       # Async DB session & table creation
-│   └── redis.py         # Redis client for token blacklisting
-├── services/            # Business logic (Seller, Shipment)
-├── config.py            # Pydantic settings (DB + Redis + JWT)
-├── main.py              # FastAPI application entry point
-└── utils.py             # JWT encode/decode helpers
+├── app/
+│   ├── api/
+│   │   ├── routers/         # Route handlers (seller, shipment)
+│   │   ├── schemas/         # Pydantic request/response schemas
+│   │   └── dependencies.py  # Shared FastAPI dependencies
+│   ├── core/
+│   │   └── security.py      # OAuth2 scheme
+│   ├── database/
+│   │   ├── models.py        # SQLModel ORM models (Shipment, Seller)
+│   │   ├── session.py       # Async DB session & table creation
+│   │   └── redis.py         # Redis client for token blacklisting
+│   ├── services/            # Business logic (Seller, Shipment)
+│   ├── config.py            # Pydantic settings (DB + Redis + JWT)
+│   ├── main.py              # FastAPI application entry point
+│   ├── requirements.txt     # Project dependencies
+│   └── utils.py             # JWT encode/decode helpers
+├── migrations/
+│   ├── versions/            # Alembic migration scripts
+│   │   ├── e631a51dfd79_init.py
+│   │   └── a5da181bdee1_add_updated_at.py
+│   ├── env.py               # Alembic async migration environment
+│   └── script.py.mako       # Migration script template
+└── alembic.ini              # Alembic configuration file
 ```
+
+---
+
+## 🗃 Database Migrations (Alembic)
+
+This project uses **Alembic** with full async support for managing database schema changes.
+
+### Create a new migration
+```bash
+alembic revision --autogenerate -m "describe your change"
+```
+
+### Apply migrations
+```bash
+alembic upgrade head
+```
+
+### Rollback last migration
+```bash
+alembic downgrade -1
+```
+
+> **Note:** `migrations/env.py` is configured to use the async PostgreSQL engine from `app.config`, so migrations run against the same database as the app.
+
+---
+
+## 📐 Data Models
+
+### Shipment
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `id` | UUID | Auto-generated primary key |
+| `content` | str | Description of shipment contents |
+| `weight` | float | Weight in kg (max 25 kg) |
+| `destination` | int | Destination identifier |
+| `status` | ShipmentStatus | `placed`, `shipped`, `in_transit`, `delivered`, `returned` |
+| `estimated_delivery` | datetime | Estimated delivery date (auto-set to +5 days) |
+| `created_at` | datetime | Timestamp when shipment was created |
+| `updated_at` | datetime | ⭐ **New** — Timestamp of the last update |
+| `seller_id` | UUID | Foreign key linking to the Seller |
+
+### Seller
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `id` | UUID | Auto-generated primary key |
+| `name` | str | Seller display name |
+| `email` | EmailStr | Seller email address |
+| `password` | str | Hashed password (excluded from responses) |
+| `created_at` | datetime | Timestamp when seller account was created |
 
 ---
 
