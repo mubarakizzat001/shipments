@@ -1,3 +1,4 @@
+from sqlalchemy import Integer,ARRAY
 from uuid import UUID, uuid4
 from pydantic import EmailStr
 from enum import Enum
@@ -11,6 +12,12 @@ class ShipmentStatus(str, Enum):
     in_transit = "in_transit"
     delivered = "delivered"
     returned = "returned"
+
+class user(SQLModel):
+    name: str
+    email: EmailStr
+    password: str = Field(exclude=True)
+    
 
 class Shipment(SQLModel, table=True):
     __tablename__ = "shipment"
@@ -47,7 +54,16 @@ class Shipment(SQLModel, table=True):
         sa_relationship_kwargs={"lazy": "selectin"},
     )
 
-class Seller(SQLModel,table=True):
+    delivery_partner_id:UUID=Field(
+        foreign_key="deliverypartner.id",
+        nullable=True
+    )
+    delivery_partner:"deliverypartner"=Relationship(
+        back_populates="shipments",
+        sa_relationship_kwargs={"lazy":"selectin"}
+    )
+
+class Seller(user,table=True):
     __tablename__ = "seller"
 
     id: UUID = Field(
@@ -57,10 +73,6 @@ class Seller(SQLModel,table=True):
             primary_key=True,
         )
     )
-    name: str
-
-    email: EmailStr
-    password: str = Field(exclude=True)
 
     created_at: datetime = Field(
         sa_column=Column(
@@ -69,11 +81,56 @@ class Seller(SQLModel,table=True):
         )
     )
 
+    updated_at: datetime = Field(
+        sa_column=Column(
+            postgresql.TIMESTAMP,
+            default=datetime.now,
+            onupdate=datetime.now,
+        )
+    )
+
   
 
     shipments: list[Shipment] = Relationship(
         back_populates="seller",
         sa_relationship_kwargs={"lazy": "selectin"},
+    )
+
+    
+class deliverypartner(user,table=True):
+    __tablename__ = "deliverypartner"
+
+    id: UUID = Field(
+        sa_column=Column(
+            postgresql.UUID,
+            default=uuid4,
+            primary_key=True,
+        )
+    )
+
+    servicable_zip_codes:list[int]=Field(
+        sa_column=Column(ARRAY(Integer))
+    )
+    max_handling_capacity:int
+
+    created_at: datetime = Field(
+        sa_column=Column(
+            postgresql.TIMESTAMP,
+            default=datetime.now,
+        )
+    )
+    updated_at: datetime = Field(
+        sa_column=Column(
+            postgresql.TIMESTAMP,
+            default=datetime.now,
+            onupdate=datetime.now,
+        )
+    )
+
+
+    shipments:list["Shipment"] = Relationship(
+        back_populates="delivery_partner",
+        sa_relationship_kwargs={"lazy":"selectin"}
     )
 
     
