@@ -1,21 +1,18 @@
-
-
-
+from app.services.DeliveryPartnerService import DeliveryPartnerService
+from uuid import UUID
 from app.database.models import Seller,Shipment
 from datetime import datetime,timedelta
 from app.database.models import ShipmentStatus
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.schemas.shipment import CreateShipment
+from app.services.Base_Service import Base_service
+class shipment_service(Base_service):
+    def __init__(self,session:AsyncSession,delivery_partner_service:DeliveryPartnerService):
+        super().__init__(Shipment,session)
+        self.delivery_partner_service = delivery_partner_service
 
-class shipment_service:
-    def __init__(self,session:AsyncSession):
-        self.session=session
-
-
-    async def get_shipment(self,shipment_id:int)->Shipment:
-
-
-        return await self.session.get(Shipment,shipment_id)
+    async def get_shipment(self,id:UUID)->Shipment | None:
+        return await self._get(id)
     
 
     async def post_shipment(self,shipment_data : CreateShipment,seller:Seller)->Shipment:
@@ -25,22 +22,16 @@ class shipment_service:
         estimated_delivery=datetime.now() + timedelta(days=5),
         seller_id=seller.id
     )
-        self.session.add(new_shipment)
-        await self.session.commit()
-        await self.session.refresh(new_shipment)
-        return new_shipment
+        await self.delivery_partner_service.assign_shipment(new_shipment)
+        return await self._add(new_shipment)
 
 
-    async def patch_shipment(self,shipment_id:int,shipment_update:dict)->Shipment:
-        shipment_obj =await self.get_shipment(shipment_id)
+    async def patch_shipment(self,id:UUID,shipment_update:dict)->Shipment:
+        shipment_obj =await self.get_shipment(id)
         shipment_obj.sqlmodel_update(shipment_update)
-        self.session.add(shipment_obj)
-        await self.session.commit()
-        await self.session.refresh(shipment_obj)
-        return shipment_obj
+        shipment = await self._patch(shipment_obj)
+        return shipment
 
 
-    async def delete_shipment(self,shipment_id:int)->None:
-        shipment_obj = await self.get_shipment(shipment_id)
-        await self.session.delete(shipment_obj)
-        await self.session.commit()
+    async def delete_shipment(self,id:UUID)->None:
+        await self._delete(await self._get(id))

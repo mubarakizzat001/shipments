@@ -13,7 +13,7 @@ class ShipmentStatus(str, Enum):
     delivered = "delivered"
     returned = "returned"
 
-class user(SQLModel):
+class User(SQLModel):
     name: str
     email: EmailStr
     password: str = Field(exclude=True)
@@ -55,15 +55,15 @@ class Shipment(SQLModel, table=True):
     )
 
     delivery_partner_id:UUID=Field(
-        foreign_key="deliverypartner.id",
+        foreign_key="DeliveryPartner.id",
         nullable=True
     )
-    delivery_partner:"deliverypartner"=Relationship(
+    delivery_partner:"DeliveryPartner"=Relationship(
         back_populates="shipments",
         sa_relationship_kwargs={"lazy":"selectin"}
     )
 
-class Seller(user,table=True):
+class Seller(User,table=True):
     __tablename__ = "seller"
 
     id: UUID = Field(
@@ -97,8 +97,8 @@ class Seller(user,table=True):
     )
 
     
-class deliverypartner(user,table=True):
-    __tablename__ = "deliverypartner"
+class DeliveryPartner(User,table=True):
+    __tablename__ = "DeliveryPartner"
 
     id: UUID = Field(
         sa_column=Column(
@@ -133,4 +133,14 @@ class deliverypartner(user,table=True):
         sa_relationship_kwargs={"lazy":"selectin"}
     )
 
-    
+
+    @property
+    def active_shipments(self):
+        return [
+            shipment for shipment in self.shipments
+            if shipment.status != ShipmentStatus.delivered and shipment.status != ShipmentStatus.returned
+        ]
+
+    @property
+    def current_handling_capacity(self):
+        return self.max_handling_capacity - len(self.active_shipments)

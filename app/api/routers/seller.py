@@ -1,5 +1,5 @@
 from ...database.redis import add_jti_to_blackist
-from ...api.dependencies import get_access_token
+from ...api.dependencies import get_access_token_seller
 from typing import Annotated
 from fastapi import Depends, HTTPException, status
 from fastapi.security.oauth2 import OAuth2PasswordRequestForm
@@ -8,9 +8,6 @@ from ...api.schemas.seller import seller_read
 from ...api.dependencies import sellerDep,sessionDep
 from ...api.schemas.seller import seller_create
 from fastapi import APIRouter
-
-from ...core.security import OAuth_schemas
-from ...utils import decode_access_token
 
 
 
@@ -43,7 +40,7 @@ async def login_seller(
 
 
 @router.post("/logout")
-async def logout_seller(token: Annotated[dict,Depends(get_access_token)]):
+async def logout_seller(token: Annotated[dict,Depends(get_access_token_seller)]):
     """Logs out the seller by blacklisting the JWT token."""
     await add_jti_to_blackist(token["jti"])
     return {
