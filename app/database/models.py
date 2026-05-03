@@ -47,7 +47,6 @@ class Shipment(SQLModel, table=True):
     weight: float = Field(le=25)
     destination: int
     estimated_delivery: datetime | None
-    status: ShipmentStatus
     seller_id: UUID = Field(foreign_key="seller.id")
     seller: "Seller" = Relationship(
         back_populates="shipments",
@@ -62,6 +61,37 @@ class Shipment(SQLModel, table=True):
         back_populates="shipments",
         sa_relationship_kwargs={"lazy":"selectin"}
     )
+    timeline:list["ShipmentEvent"]=Relationship(
+        back_populates="shipment",
+        sa_relationship_kwargs={"lazy":"selectin"}
+    )
+
+class ShipmentEvent(SQLModel,table=True):
+    __tablename__="ShipmentEvent"
+    id: UUID = Field(
+        sa_column=Column(
+            postgresql.UUID,
+            default=uuid4,
+            primary_key=True,
+        )
+    )
+
+    created_at: datetime = Field(
+        sa_column=Column(
+            postgresql.TIMESTAMP,
+            default=datetime.now,
+        )
+    )
+    location:int
+    status:ShipmentStatus
+    description:str|None=Field(default="None")
+    shipment_id:UUID=Field(foreign_key="shipment.id")
+    shipment:"Shipment"=Relationship(
+        back_populates="timeline",
+        sa_relationship_kwargs={"lazy":"selectin"}
+    )
+
+
 
 class Seller(User,table=True):
     __tablename__ = "seller"
@@ -88,8 +118,10 @@ class Seller(User,table=True):
             onupdate=datetime.now,
         )
     )
+    address:str|None=Field(default=None)
+    zip_code:int|None=Field(default=None)
+    
 
-  
 
     shipments: list[Shipment] = Relationship(
         back_populates="seller",
