@@ -1,3 +1,4 @@
+from typing import Any
 from app.api.schemas import UpdateShipment
 from app.services.ShipmentEventService import ShipmentEventService
 from app.services.DeliveryPartnerService import DeliveryPartnerService
@@ -63,6 +64,23 @@ class shipment_service(Base_service):
         shipment_obj.timeline.append(event)
         return await self._patch(shipment_obj)
 
+
+
+    async def cancel_shipment(self,id:UUID,seller:Seller)->Shipment:
+        shipment_obj=await self._get(id)
+        if shipment_obj is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+        if seller.id != shipment_obj.seller_id:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="unauthorized")
+        shipment_obj.status=ShipmentStatus.cancelled
+        event=await self.event_service.create_shipment_event(
+            shipment=shipment_obj,
+            status=ShipmentStatus.cancelled,
+            location=seller.zip_code,
+            description="cancelled by seller"
+            )
+        shipment_obj.timeline.append(event)
+        return await self._patch(shipment_obj)
 
     async def delete_shipment(self,id:UUID)->None:
         return await self._delete(await self._get(id))

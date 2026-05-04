@@ -52,5 +52,7 @@ class ShipmentEventService(Base_service):
                 return f"Your order has been delivered at location {location}"
             case ShipmentStatus.returned:
                 return f"Your order has been returned from location {location}"
+            case ShipmentStatus.cancelled:
+                return f"Your order has been cancelled at location {location}"
 
  

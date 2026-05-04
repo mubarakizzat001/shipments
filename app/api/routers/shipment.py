@@ -47,11 +47,13 @@ async def update(
 
 
 
-### delete shipment by id
-@router.delete("/")
-async def delete(seller:activesellerDep,shipment_id: UUID, service: serviceDep) -> dict[str, Any]:
-    ### remove shipment from dataset
-    await service.delete_shipment(shipment_id)
-
-    return {"message": f"shipment {shipment_id} deleted"}
+### cancel shipment by id
+@router.get("/cancel",response_model=Shipment)
+async def cancel_shipment(
+    id: UUID, 
+    service: serviceDep,
+    seller:activesellerDep
+) -> Shipment:
+    ### cancel shipment by id
+    return await service.cancel_shipment(id,seller)
 
