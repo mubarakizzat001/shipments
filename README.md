@@ -1,6 +1,6 @@
 # 📦 Shipment Management API
 
-A modern, modular FastAPI REST API for creating and tracking shipments. This project features a clean architecture, asynchronous database operations, and secure authentication.
+A modern, modular FastAPI REST API for creating and tracking shipments. This project features a clean layered architecture, asynchronous database operations, a full shipment lifecycle with event tracking, automatic delivery partner assignment, and secure dual authentication for Sellers and Delivery Partners.
 
 ---
 
@@ -9,11 +9,15 @@ A modern, modular FastAPI REST API for creating and tracking shipments. This pro
 - **Modular architecture**: Organized into API (routers, schemas), Services, and Database layers.
 - **Async DB operations**: Utilizes SQLModel with `asyncpg` for efficient PostgreSQL interactions.
 - **Database Migrations**: Managed via **Alembic** for seamless schema evolution.
-- **JWT-based Authentication**: Secure seller account management with token-based access control.
-- **Token Blacklisting via Redis**: Logout invalidates JWT tokens instantly using a Redis-backed blacklist (JTI-based).
-- **Secure Logout**: `/seller/logout` endpoint blacklists the token's JTI, preventing reuse even before expiry.
+- **JWT-based Authentication**: Secure account management for both **Sellers** and **Delivery Partners** with token-based access control.
+- **Dual OAuth2 schemes**: Separate OAuth2 password flows for Sellers (`/seller/login`) and Delivery Partners (`/deliverypartner/login`).
+- **Token Blacklisting via Redis**: Logout immediately invalidates JWT tokens using a Redis-backed JTI blacklist.
+- **Secure Logout**: Both `/seller/logout` and `/deliverypartner/logout` blacklist the token's JTI, preventing reuse even before expiry.
+- **Auto Delivery Partner Assignment**: On shipment creation, the system automatically assigns an eligible delivery partner based on destination zip code and available capacity.
+- **Shipment Event Timeline**: Every status change is recorded as a `ShipmentEvent`, forming a full audit timeline per shipment.
+- **Shipment Cancellation**: Sellers can cancel their own shipments; the cancellation is recorded in the event timeline.
 - **Auto Table Creation**: Automatically sets up database tables on startup.
-- **Interactive Documentation**: Swagger UI and **Scalar** API reference for better developer experience.
+- **Interactive Documentation**: Swagger UI and **Scalar** API reference for a better developer experience.
 
 ---
 
@@ -21,15 +25,16 @@ A modern, modular FastAPI REST API for creating and tracking shipments. This pro
 
 - Python 3.9+
 - Redis server (for token blacklisting)
+- PostgreSQL database
 - See `requirements.txt` for dependencies:
   - `fastapi[all]`, `uvicorn`, `sqlmodel`, `asyncpg`, `alembic`
-  - `passlib[bcrypt]`, `pyjwt`
+  - `passlib[bcrypt]`, `pyjwt`, `bcrypt`
   - `scalar-fastapi`, `pydantic-settings`
   - `redis` (async Redis client)
 
 ---
 
-## ⚙️ Environment variables (.env)
+## ⚙️ Environment Variables (.env)
 
 Create a `.env` file at the project root based on `.env.example`:
 
@@ -65,7 +70,7 @@ REDIS_PORT=6379
 
 3. Install dependencies:
    ```bash
-   pip install -r requirements.txt
+   pip install -r app/requirements.txt
    ```
 
 4. Run migrations:
@@ -80,7 +85,7 @@ REDIS_PORT=6379
 Start the server from the project root:
 
 ```bash
-uvicorn ml_fastapi.main:app --reload
+uvicorn app.main:app --reload
 ```
 
 - **Swagger UI**: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
@@ -93,41 +98,89 @@ uvicorn ml_fastapi.main:app --reload
 ### Seller (Authentication)
 | Method | Endpoint | Description | Auth |
 | :--- | :--- | :--- | :--- |
-| `POST` | `/seller/signup` | Register a new seller | No |
+| `POST` | `/seller/signup` | Register a new seller (with `address` & `zip_code`) | No |
 | `POST` | `/seller/login` | Login (OAuth2 Password Grant) | No |
-| `GET` | `/seller/dashboard` | Access protected seller dashboard | Bearer Token |
-| `POST` | `/seller/logout` | Logout and blacklist current JWT token | Bearer Token |
+| `POST` | `/seller/logout` | Logout and blacklist current JWT token | Bearer Token (Seller) |
 
 ### Shipments
 | Method | Endpoint | Description | Auth |
 | :--- | :--- | :--- | :--- |
-| `POST` | `/api/` | Create a new shipment | No |
-| `GET` | `/api/` | Get shipment by ID (requires `shipment_id` query param) | No |
-| `PATCH` | `/api/` | Update shipment (partial, requires `shipment_id`) | No |
-| `DELETE` | `/api/` | Delete shipment (requires `shipment_id`) | No |
+| `POST` | `/api/` | Create a new shipment (auto-assigns delivery partner) | Bearer Token (Seller) |
+| `GET` | `/api/` | Get shipment by ID (`shipment_id` query param) | Bearer Token (Seller) |
+| `PATCH` | `/api/` | Update shipment status/location (delivery partner only) | Bearer Token (Delivery Partner) |
+| `GET` | `/api/cancel` | Cancel a shipment by ID (seller only, records event) | Bearer Token (Seller) |
+
+### Delivery Partner
+| Method | Endpoint | Description | Auth |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/deliverypartner/signup` | Register a new delivery partner | No |
+| `POST` | `/deliverypartner/login` | Login (OAuth2 Password Grant) | No |
+| `POST` | `/deliverypartner/update` | Update capacity or serviceable zip codes | Bearer Token (Delivery Partner) |
+| `GET` | `/deliverypartner/logout` | Logout and blacklist current JWT token | Bearer Token (Delivery Partner) |
 
 ---
 
-## 🔐 Authentication Example (curl)
+## 🔐 Authentication Examples (curl)
+
+### Seller
 
 1. **Signup**:
    ```bash
-   curl -X POST "http://127.0.0.1:8000/seller/signup" -H "Content-Type: application/json" -d '{"name": "Alice", "email": "a@example.com", "password": "secret"}'
+   curl -X POST "http://127.0.0.1:8000/seller/signup" \
+     -H "Content-Type: application/json" \
+     -d '{"name": "Alice", "email": "alice@example.com", "password": "secret", "address": "123 Main St", "zip_code": 10001}'
    ```
 
 2. **Login**:
    ```bash
-   curl -X POST "http://127.0.0.1:8000/seller/login" -H "Content-Type: application/x-www-form-urlencoded" -d "username=a@example.com&password=secret"
+   curl -X POST "http://127.0.0.1:8000/seller/login" \
+     -H "Content-Type: application/x-www-form-urlencoded" \
+     -d "username=alice@example.com&password=secret"
    ```
 
-3. **Dashboard Access**:
-   ```bash
-   curl -H "Authorization: Bearer <your_jwt_token>" http://127.0.0.1:8000/seller/dashboard
-   ```
-
-4. **Logout** (blacklists the token via Redis):
+3. **Logout** (blacklists the token via Redis):
    ```bash
    curl -X POST -H "Authorization: Bearer <your_jwt_token>" http://127.0.0.1:8000/seller/logout
+   ```
+
+### Delivery Partner
+
+1. **Signup**:
+   ```bash
+   curl -X POST "http://127.0.0.1:8000/deliverypartner/signup" \
+     -H "Content-Type: application/json" \
+     -d '{"name": "FastShip", "email": "partner@example.com", "password": "secret", "max_handling_capacity": 10, "servicable_zip_codes": [10001, 10002]}'
+   ```
+
+2. **Login**:
+   ```bash
+   curl -X POST "http://127.0.0.1:8000/deliverypartner/login" \
+     -H "Content-Type: application/x-www-form-urlencoded" \
+     -d "username=partner@example.com&password=secret"
+   ```
+
+3. **Update capacity/zip codes**:
+   ```bash
+   curl -X POST "http://127.0.0.1:8000/deliverypartner/update" \
+     -H "Authorization: Bearer <partner_jwt_token>" \
+     -H "Content-Type: application/json" \
+     -d '{"max_handling_capacity": 15}'
+   ```
+
+### Shipments
+
+1. **Create a shipment** (auto-assigns delivery partner):
+   ```bash
+   curl -X POST "http://127.0.0.1:8000/api/" \
+     -H "Authorization: Bearer <seller_jwt_token>" \
+     -H "Content-Type: application/json" \
+     -d '{"content": "Books and stationery", "weight": 2.5, "destination": 10001}'
+   ```
+
+2. **Cancel a shipment**:
+   ```bash
+   curl -X GET "http://127.0.0.1:8000/api/cancel?id=<shipment_uuid>" \
+     -H "Authorization: Bearer <seller_jwt_token>"
    ```
 
 ---
@@ -138,27 +191,38 @@ uvicorn ml_fastapi.main:app --reload
 ml_fastapi/
 ├── app/
 │   ├── api/
-│   │   ├── routers/         # Route handlers (seller, shipment)
-│   │   ├── schemas/         # Pydantic request/response schemas
-│   │   └── dependencies.py  # Shared FastAPI dependencies
+│   │   ├── routers/
+│   │   │   ├── seller.py           # Seller auth endpoints
+│   │   │   ├── shipment.py         # Shipment CRUD + cancel endpoints
+│   │   │   └── delivery_partner.py # Delivery partner auth & update endpoints
+│   │   ├── schemas/
+│   │   │   ├── seller.py           # Seller request/response schemas
+│   │   │   ├── shipment.py         # Shipment request/response schemas
+│   │   │   └── delivery_partner.py # DeliveryPartner request/response schemas
+│   │   ├── dependencies.py         # Shared FastAPI dependencies & DI wiring
+│   │   └── router.py               # Master router (combines all routers)
 │   ├── core/
-│   │   └── security.py      # OAuth2 scheme
+│   │   └── security.py             # Dual OAuth2 schemes (Seller + DeliveryPartner)
 │   ├── database/
-│   │   ├── models.py        # SQLModel ORM models (Shipment, Seller)
-│   │   ├── session.py       # Async DB session & table creation
-│   │   └── redis.py         # Redis client for token blacklisting
-│   ├── services/            # Business logic (Seller, Shipment)
-│   ├── config.py            # Pydantic settings (DB + Redis + JWT)
-│   ├── main.py              # FastAPI application entry point
-│   ├── requirements.txt     # Project dependencies
-│   └── utils.py             # JWT encode/decode helpers
+│   │   ├── models.py               # SQLModel ORM models (Shipment, Seller, DeliveryPartner, ShipmentEvent)
+│   │   ├── session.py              # Async DB session & table creation
+│   │   └── redis.py                # Redis client for token blacklisting
+│   ├── services/
+│   │   ├── Base_Service.py         # Generic async CRUD base (get, add, patch, delete)
+│   │   ├── Base_User.py            # Base user logic (register, hash password, login, JWT)
+│   │   ├── seller.py               # Seller-specific service
+│   │   ├── shipment.py             # Shipment business logic (create, update, cancel, delete)
+│   │   ├── ShipmentEventService.py # Shipment event tracking & auto-description generation
+│   │   └── DeliveryPartnerService.py # Partner registration, login, zip-code assignment
+│   ├── config.py                   # Pydantic settings (DB + Redis + JWT)
+│   ├── main.py                     # FastAPI application entry point
+│   ├── requirements.txt            # Project dependencies
+│   └── utils.py                    # JWT encode/decode helpers
 ├── migrations/
-│   ├── versions/            # Alembic migration scripts
-│   │   ├── e631a51dfd79_init.py
-│   │   └── a5da181bdee1_add_updated_at.py
-│   ├── env.py               # Alembic async migration environment
-│   └── script.py.mako       # Migration script template
-└── alembic.ini              # Alembic configuration file
+│   ├── versions/                   # Alembic migration scripts
+│   ├── env.py                      # Alembic async migration environment
+│   └── script.py.mako              # Migration script template
+└── alembic.ini                     # Alembic configuration file
 ```
 
 ---
@@ -192,14 +256,26 @@ alembic downgrade -1
 | Field | Type | Description |
 | :--- | :--- | :--- |
 | `id` | UUID | Auto-generated primary key |
-| `content` | str | Description of shipment contents |
+| `content` | str | Description of shipment contents (5–50 chars) |
 | `weight` | float | Weight in kg (max 25 kg) |
-| `destination` | int | Destination identifier |
-| `status` | ShipmentStatus | `placed`, `shipped`, `in_transit`, `delivered`, `returned` |
-| `estimated_delivery` | datetime | Estimated delivery date (auto-set to +5 days) |
+| `destination` | int | Destination zip code |
+| `status` | ShipmentStatus | Derived from latest event: `placed`, `shipped`, `in_transit`, `delivered`, `returned`, `cancelled` |
+| `estimated_delivery` | datetime | Estimated delivery date (auto-set to +5 days on creation) |
 | `created_at` | datetime | Timestamp when shipment was created |
-| `updated_at` | datetime | ⭐ **New** — Timestamp of the last update |
+| `updated_at` | datetime | Timestamp of the last update |
 | `seller_id` | UUID | Foreign key linking to the Seller |
+| `delivery_partner_id` | UUID | Foreign key linking to the assigned DeliveryPartner |
+| `timeline` | list[ShipmentEvent] | Ordered list of all status change events |
+
+### ShipmentEvent ⭐ New
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `id` | UUID | Auto-generated primary key |
+| `shipment_id` | UUID | Foreign key linking to the Shipment |
+| `status` | ShipmentStatus | Status recorded at this event |
+| `location` | int | Zip code location where the event occurred |
+| `description` | str | Auto-generated or custom event description |
+| `created_at` | datetime | Timestamp when this event was recorded |
 
 ### Seller
 | Field | Type | Description |
@@ -208,7 +284,48 @@ alembic downgrade -1
 | `name` | str | Seller display name |
 | `email` | EmailStr | Seller email address |
 | `password` | str | Hashed password (excluded from responses) |
+| `address` | str | ⭐ **New** — Seller's physical address |
+| `zip_code` | int | ⭐ **New** — Seller's zip code (used as origin location for events) |
 | `created_at` | datetime | Timestamp when seller account was created |
+| `updated_at` | datetime | Timestamp of the last update |
+
+### DeliveryPartner ⭐ New
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `id` | UUID | Auto-generated primary key |
+| `name` | str | Partner display name |
+| `email` | EmailStr | Partner email address |
+| `password` | str | Hashed password (excluded from responses) |
+| `max_handling_capacity` | int | Maximum number of shipments the partner can handle |
+| `servicable_zip_codes` | list[int] | List of zip codes the partner can deliver to |
+| `created_at` | datetime | Timestamp when partner account was created |
+| `updated_at` | datetime | Timestamp of the last update |
+
+> **Computed properties on `DeliveryPartner`:**
+> - `active_shipments` — shipments not yet delivered or cancelled
+> - `current_handling_capacity` — `max_handling_capacity - len(active_shipments)`
+
+---
+
+## 🔄 Shipment Lifecycle
+
+```
+[Seller creates shipment]
+        │
+        ▼
+   status: placed  ──────────────────────────────────────► [cancelled] ← Seller can cancel
+        │
+        ▼ (Delivery Partner updates)
+   status: shipped
+        │
+        ▼
+   status: in_transit
+        │
+        ▼
+   status: delivered / returned
+```
+
+Each transition is recorded as a `ShipmentEvent` in the `timeline` with a location, status, and auto-generated description.
 
 ---
 
