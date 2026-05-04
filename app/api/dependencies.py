@@ -1,3 +1,4 @@
+from app.services.ShipmentEventService import ShipmentEventService
 from app.services.DeliveryPartnerService import DeliveryPartnerService
 from app.database.redis import is_token_blacklisted
 from app.database.models import Seller,DeliveryPartner
@@ -58,7 +59,7 @@ async def get_current_deliverypartner(token_data :Annotated[dict,Depends(get_acc
     return delivery_partner
 
 def get_shipment_service(session:sessionDep):
-    return shipment_service(session,DeliveryPartnerService(session))
+    return shipment_service(session,DeliveryPartnerService(session),ShipmentEventService(session))
 
 def get_seller_service(session:sessionDep):
     return SellerService(session)

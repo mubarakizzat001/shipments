@@ -1,10 +1,10 @@
-from ..dependencies import activesellerDep
-from ..dependencies import serviceDep
+from app.api.dependencies import active_deliverypartnerDep
+from app.database.models import DeliveryPartner
+from app.api.dependencies import deliverypartnerDep,activesellerDep,serviceDep
 from fastapi import APIRouter
 from ..schemas import CreateShipment, UpdateShipment,Shipment
 from typing import Any
 from fastapi import HTTPException, status
-from ...database.models import Seller
 from uuid import UUID
 
 
@@ -31,13 +31,20 @@ async def create(   shipment_data: CreateShipment,
    
 
 ### update shipment by id
-@router.patch("/", response_model=UpdateShipment)
-async def update(seller:activesellerDep,shipment_id: UUID, shipment_update: UpdateShipment, service: serviceDep) -> Any:
-    updated_data = shipment_update.model_dump(exclude_none=True)
-    if not updated_data:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="no update data provided")
-    shipment_obj= await service.patch_shipment(shipment_id,shipment_update)
-    return shipment_obj
+@router.patch("/", response_model=Shipment)
+async def update(
+    id: UUID,
+    shipment_update: UpdateShipment,
+    service: serviceDep,
+    partner:active_deliverypartnerDep
+      ) -> Any:
+  
+    return await service.patch_shipment(
+        id,
+        shipment_update,
+        partner
+    )
+
 
 
 ### delete shipment by id

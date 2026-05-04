@@ -13,3 +13,6 @@ class seller_read(base_seller):
 
 class seller_create(base_seller):
     password:str
+    address:str
+    zip_code:int
+    

@@ -66,6 +66,11 @@ class Shipment(SQLModel, table=True):
         sa_relationship_kwargs={"lazy":"selectin"}
     )
 
+    @property
+    def status(self):
+        return self.timeline[-1].status if len(self.timeline) > 0 else None
+    
+
 class ShipmentEvent(SQLModel,table=True):
     __tablename__="ShipmentEvent"
     id: UUID = Field(
@@ -170,7 +175,7 @@ class DeliveryPartner(User,table=True):
     def active_shipments(self):
         return [
             shipment for shipment in self.shipments
-            if shipment.status != ShipmentStatus.delivered and shipment.status != ShipmentStatus.returned
+            if shipment.status != ShipmentStatus.delivered
         ]
 
     @property
